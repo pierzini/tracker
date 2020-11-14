@@ -1,0 +1,21 @@
+[package]
+name = "tracker"
+version = "0.1.0"
+authors = ["pierpaolo"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlite = "0.25.3"
+dirs = "3.0.1"
+glob = "0.3.0"
+elasticsearch = "7.9.0-alpha.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "~1"
+tokio = { version = "0.2.22", features = ["full"] }
+regex = "1.4.2"
+lazy_static = "1.4.0"
+clap = "2.33.3"
+tempfile = "3.1.0"
+chrono = "0.4"
