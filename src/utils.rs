@@ -25,8 +25,9 @@ pub fn timestamp_now() -> u64 {
 pub fn file_read_from<P: AsRef<Path>>(
     filepath: P,
     from: u64,
-    contents: &mut String,
-) -> io::Result<u64> {
+) -> io::Result<String> {
+    let mut contents = String::new();
+
     let mut file = File::open(&filepath)?;
     let len = file.metadata().unwrap().len();
     if len < from {
@@ -41,8 +42,8 @@ pub fn file_read_from<P: AsRef<Path>>(
         ));
     }
     file.seek(io::SeekFrom::Start(from)).unwrap();
-    file.read_to_string(contents)? as u64;
-    Ok(len)
+    file.read_to_string(& mut contents)? as u64;
+    Ok(contents)
 }
 
 /**

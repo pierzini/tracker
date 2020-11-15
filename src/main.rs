@@ -46,11 +46,7 @@ fn main() {
         let es_config_file = args.value_of("configuration").unwrap();
         elastic::ESConfig::from_file(&es_config_file).unwrap_or_else(|err| {
             let errmsg = err.to_string();
-            eprintln!(
-                "failed to read ES configuration file {}: {}",
-                &es_config_file,
-                errmsg.to_string()
-            );
+            eprintln!( "[*] ERR: elasticsearch error: {}", errmsg.to_string());
             std::process::exit(1);
         })
     } else {
@@ -59,42 +55,43 @@ fn main() {
         let index = args.value_of("index").unwrap().to_string();
         elastic::ESConfig::new(&host, &port, &index)
     };
-    let es_index = Arc::new(Mutex::new(elastic::ESIndex::new(es_config)));
+    let es_index = elastic::ESIndex::new(es_config).unwrap_or_else(|err| {
+        eprintln!("[*] ERR: elasticsearch error: {}", err.to_string());
+        std::process::exit(1);
+    });
+    let es_index = Arc::new(Mutex::new(es_index));
 
-    let mut firefox_history = BrowserHistControl::new(Browser::Firefox, BrowserHistFrom::Now)
-        .unwrap_or_else(|err| {
-            eprintln!("browser database not founded: {}", err);
-            std::process::exit(1);
-        });
+    let mut firefox_history = BrowserHistControl::new(
+        Browser::Firefox,
+        BrowserHistFrom::Now
+    ).unwrap_or_else(|err| {
+        eprintln!("[*] ERR: browser error: {}", err);
+        std::process::exit(1);
+    });
 
     let pid = std::process::id();
     let mut shell_hist = HistState::new(pid).unwrap_or_else(|err| {
-        eprintln!("error: {}", err);
+        eprintln!("[*] ERR: console error: {}", err);
         std::process::exit(1);
     });
 
     let mut runner = Runner::new();
-
-    let t_es_index = Arc::clone(&es_index);
-    runner.start_loop("browser_hist_dump", move || {
+    let t_es_index = Arc::clone(&es_index);    
+    runner.start_loop("dumper", move || {
         if let Some(records) = firefox_history.dump() {
             t_es_index.lock().unwrap().bulk_import(records).unwrap();
         }
-        thread::sleep(time::Duration::from_millis(500));
-    });
-
-    let t_es_index = Arc::clone(&es_index);
-    runner.start_loop("shell_hist_dump", move || {
         if let Some(records) = shell_hist.dump() {
             t_es_index.lock().unwrap().bulk_import(records).unwrap();
         }
         thread::sleep(time::Duration::from_millis(500));
     });
 
+
     let mut shell = start_console().unwrap_or_else(|err| {
-        eprintln!("error: {}", err);
+        eprintln!("[*] ERR: failed to start console: {}", err);
         std::process::exit(1);
     });
-    shell.wait().expect("error: failed to wait shell");
-    println!("exit...");
+    shell.wait().expect("[*] ERR: failed to wait console");
+    println!("[*] exit...");
 }

@@ -84,6 +84,10 @@ impl BrowserHistControl {
         };
 
         let database = path_expand_and_resolve(database)?;
+
+        // todo: only verbose
+        println!("[*] browser db founded: {}", &database.display());
+        
         let raw_query = raw_query.to_string();
         let l_timestamp = 0;
         let history = Vec::new();

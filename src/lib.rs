@@ -8,6 +8,7 @@ pub mod browser;
 pub mod console;
 pub mod elastic;
 pub mod utils;
+pub mod log;
 
 pub trait JsonDumper {
     fn dump(&mut self) -> Option<Vec<serde_json::Value>>;
@@ -28,16 +29,26 @@ impl JsonDumper for browser::BrowserHistControl {
 
                 for entry in history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
-                    json_value.insert("url.full".to_string(), serde_json::json!(entry.url));
-                    json_value.insert("url.visit_count".to_string(),serde_json::json!(entry.visit_count));
-
+                    json_value.insert(
+                        "@timestamp".to_string(),
+                        serde_json::json!(entry.timestamp)
+                    );
+                    json_value.insert(
+                        "url.full".to_string(),
+                        serde_json::json!(entry.url)
+                    );
+                    json_value.insert(
+                        "url.visit_count".to_string(),
+                        serde_json::json!(entry.visit_count)
+                    );
                     let json_value = serde_json::to_value(json_value).unwrap();
                     json_records.push(json_value);
                 }
                 Some(json_records)
             }
-            Err(_) => None,
+            Err(_) => {
+                None
+            },
         };
     }
 }
@@ -59,8 +70,14 @@ impl JsonDumper for console::HistState {
 
                 for entry in history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
-                    json_value.insert("user.name".to_string(), serde_json::json!(entry.user));
+                    json_value.insert(
+                        "@timestamp".to_string(),
+                        serde_json::json!(entry.timestamp)
+                    );
+                    json_value.insert(
+                        "user.name".to_string(),
+                        serde_json::json!(entry.user)
+                    );
                     json_value.insert(
                         "process.command_line".to_string(),
                         serde_json::json!(entry.cmd),
@@ -77,10 +94,11 @@ impl JsonDumper for console::HistState {
                     let json_value = serde_json::to_value(json_value).unwrap();
                     json_records.push(json_value);
                 }
-
                 Some(json_records)
             }
-            Err(_) => None,
+            Err(_) => {
+                None
+            },
         };
     }
 }
@@ -112,23 +130,15 @@ impl Runner {
         F: FnMut() + Send + 'static,
     {
         let name = name.to_string(); 
-        let active = true;
         let rx = Arc::clone(&self.receiver);
-        let thread = thread::spawn(move || {
-            while active {
-                match rx.lock().unwrap().try_recv() {
-                    Ok(_) => {
-                        /* do job last time */
-                        job();  
-                        println!("terminating thread {}", name);
-                        break;
-                    },
-                    Err(_) => {
-                        job();
-                    }
-                }
+        let thread = thread::spawn(move || loop {
+            job();
+            if let Ok(Message::Terminate) = rx.lock().unwrap().try_recv() {
+                println!("[*] terminating thread '{}'", name);
+                break;
             }
         });
+
         self.workers.push(Some(thread));
     }
 }
