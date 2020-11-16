@@ -34,7 +34,7 @@ impl ESConfig {
         
         /* todo: only if verbose */
         println!(
-            "[*] ElastcSearch configuration: host {}, port {}, index {}",
+            "[*] ElasticSearch configuration: host {}, port {}, index {}",
             host, port, index
         );
         

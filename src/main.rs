@@ -6,6 +6,7 @@ use tracker::browser::*;
 use tracker::console::*;
 use tracker::*;
 
+
 fn main() {
     /* parse args */
     let args = clap::App::new("tracker")
@@ -37,7 +38,7 @@ fn main() {
                 .short("f")
                 .long("file")
                 .number_of_values(1)
-                .conflicts_with_all(&["host", "port", "index"]),
+                .conflicts_with_all(&["host", "port", "index"])
         )
         .get_matches();
 
@@ -77,10 +78,11 @@ fn main() {
 
     let mut runner = Runner::new();
     let t_es_index = Arc::clone(&es_index);    
-    runner.start_loop("dumper", move || {
+    runner.start_loop(move || {
         if let Some(records) = firefox_history.dump() {
             t_es_index.lock().unwrap().bulk_import(records).unwrap();
         }
+
         if let Some(records) = shell_hist.dump() {
             t_es_index.lock().unwrap().bulk_import(records).unwrap();
         }

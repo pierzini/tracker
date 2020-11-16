@@ -18,8 +18,8 @@ pub fn timestamp_now() -> u64 {
 }
 
 /**
- * Read file `filepath` from position `from`, put contents in `contents`
- * and return last position of file.
+ * Read file `filepath` from position `from`
+ * and return contents readed.
  * Return some io::Error if present.
  */
 pub fn file_read_from<P: AsRef<Path>>(

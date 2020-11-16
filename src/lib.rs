@@ -42,11 +42,20 @@ impl JsonDumper for browser::BrowserHistControl {
                         serde_json::json!(entry.visit_count)
                     );
                     let json_value = serde_json::to_value(json_value).unwrap();
+
+                    log::log_info(
+                        &format!("dumped browser history: {}\t{}",
+                            entry.timestamp, entry.url)
+                    );
+                    
                     json_records.push(json_value);
+
                 }
+                
                 Some(json_records)
             }
             Err(_) => {
+                // todo: log error (problem)
                 None
             },
         };
@@ -68,7 +77,7 @@ impl JsonDumper for console::HistState {
                 let history = self.history().clone();
                 self.clear();
 
-                for entry in history {
+                for entry in &history {
                     let mut json_value = serde_json::Map::new();
                     json_value.insert(
                         "@timestamp".to_string(),
@@ -92,11 +101,18 @@ impl JsonDumper for console::HistState {
                     );
 
                     let json_value = serde_json::to_value(json_value).unwrap();
+
+                    log::log_info(
+                        &format!("dumped console history: {}\t{}",
+                            entry.timestamp, entry.cmd)
+                    );
+
                     json_records.push(json_value);
                 }
                 Some(json_records)
             }
             Err(_) => {
+                // todo: log error (problem)
                 None
             },
         };
@@ -125,16 +141,16 @@ impl Runner {
         }
     }
 
-    pub fn start_loop<F>(&mut self, name: &str, mut job: F)
+    pub fn start_loop<F>(&mut self, mut job: F)
     where
         F: FnMut() + Send + 'static,
     {
-        let name = name.to_string(); 
+        let id = self.workers.len();
         let rx = Arc::clone(&self.receiver);
         let thread = thread::spawn(move || loop {
             job();
             if let Ok(Message::Terminate) = rx.lock().unwrap().try_recv() {
-                println!("[*] terminating thread '{}'", name);
+                println!("[*] terminating thread ID {}", id);
                 break;
             }
         });
