@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+export PS1="$PS1 [trckr] "
+export HISTTIMEFORMAT="%s "
+
+export TRACKER_BASE="$HOME/.tracker"
+export TRACKER_HISTLOGS="$TRACKER_BASE/histlogs"
+export TRACKER_OUTPUTS="$TRACKER_BASE/outputs"
+export TRACKER_HISTFILE="$TRACKER_BASE/histfile"
+export TRACKER_OUTPUT="$TRACKER_BASE/outfile"
+
+if [[ ! -d "$TRACKER_HISTLOGS" ]]; then
+    mkdir -p "$TRACKER_HISTLOGS"
+fi
+export TRACKER_HISTLOG="$TRACKER_HISTLOGS/hist.$PPID.log"
+
+if [[ ! -d "$TRACKER_OUTPUTS" ]]; then
+    mkdir -p "$TRACKER_OUTPUTS"
+fi
+
+if [[ ! -f "$TRACKER_HISTFILE" ]]; then
+    touch "$TRACKER_HISTFILE"
+fi
+
+exec 3>&1
+exec 1> >(tee -a -i "$TRACKER_OUTPUT")
+
+prmpt_cmd()
+{
+    # get status and user
+    local status=$?
+    local user="$(whoami)"
+
+    # append command to histfile
+    history -a "$TRACKER_HISTFILE"
+
+    # get command and timestamp
+    local timestamp="$(head -n1 "$TRACKER_HISTFILE" | sed 's/#//g')"
+    local cmd="$(tail -n +2 "$TRACKER_HISTFILE" | sed 's/\"/\\\"/g' | tr -d '\n')"
+
+    # ctrl-c or Enter pressed, exit
+    if [[ "$cmd" = "" ]]; then
+        return
+    fi
+
+    # get output
+    local output="$(cat "$TRACKER_OUTPUT")"
+    echo -n "" > "$TRACKER_OUTPUT"
+    if [[ "$(uname)" = "Darwin" ]]; then
+      local outfile="$(mktemp "$TRACKER_OUTPUTS/out_XXX").txt"
+    else
+      local outfile="$(mktemp -u -p "$TRACKER_OUTPUTS" out_XXX.txt)"
+    fi
+    echo -n "$output" > "$outfile"
+
+    # append record to logfile
+    {
+        echo -n -e "status=\"$status\"\t"
+        echo -n -e "user=\"$user\"\t"
+        echo -n -e "timestamp=\"$timestamp\"\t"
+        echo -n -e "cmd=\"$cmd\"\t"
+        echo "outfile=\"$outfile\""
+    } >> "$TRACKER_HISTLOG"
+
+    # clean histfile
+    echo -n "" > "$TRACKER_HISTFILE"
+}
+export -f prmpt_cmd
+export PROMPT_COMMAND="prmpt_cmd"
+
+trckr_exit()
+{
+    exec 1>&3
+    exec 3>&-
+}
+export -f trckr_exit
+trap trckr_exit EXIT
