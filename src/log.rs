@@ -1,6 +1,5 @@
 use crate::utils::timestamp_now;
 
-
 use chrono::NaiveDateTime;
 
 use std::io::prelude::*;
@@ -11,7 +10,7 @@ enum LogLevel {
     Error
 }
 
-static LOGFILE: &str = "/tmp/tracker.log";
+const LOGFILE: &str = "/tmp/tracker.log";
 
 fn log_msg(level: LogLevel, msg: &str) {
     let now = timestamp_now() as i64;
@@ -28,7 +27,7 @@ fn log_msg(level: LogLevel, msg: &str) {
         .open(LOGFILE) {
         writeln!(&mut file, "{}", msg).expect("failed to write log");
     }
-    
+
 }
 
 pub fn log_error(msg: &str) {

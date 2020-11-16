@@ -79,7 +79,7 @@ pub fn path_expand<P: AsRef<Path>>(path: P) -> io::Result<PathBuf> {
         None => Err(io::Error::new(
             io::ErrorKind::NotFound,
             format!(
-                "Home directory not founded. Path {} not expanded.",
+                "Home directory not founded, check if $HOME is set. Path {} not expanded.",
                 path.as_ref().display()
             ),
         )),

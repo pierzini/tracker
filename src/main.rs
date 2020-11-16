@@ -3,97 +3,57 @@ use std::thread;
 use std::time;
 
 use tracker::browser::*;
+use tracker::cli::*;
 use tracker::console::*;
+use tracker::elastic::*;
 use tracker::*;
 
-
 fn main() {
-    /* parse args */
-    let args = clap::App::new("tracker")
-        .version("1")
-        .author("Pier Paolo Zini")
-        .arg(
-            clap::Arg::with_name("host")
-                .long("host")
-                .short("h")
-                .number_of_values(1)
-                .default_value("localhost"),
-        )
-        .arg(
-            clap::Arg::with_name("port")
-                .long("port")
-                .short("p")
-                .number_of_values(1)
-                .default_value("9200"),
-        )
-        .arg(
-            clap::Arg::with_name("index")
-                .long("index")
-                .short("i")
-                .number_of_values(1)
-                .default_value("tracker"),
-        )
-        .arg(
-            clap::Arg::with_name("configuration")
-                .short("f")
-                .long("file")
-                .number_of_values(1)
-                .conflicts_with_all(&["host", "port", "index"])
-        )
-        .get_matches();
+    let cli = Cli::new().unwrap_or_else(|e| {
+        eprintln!("ERR: {}", e.to_string());
+        std::process::exit(1);
+    });
 
-    /* get ElasticSearch configuration and client */
-    let es_config = if args.is_present("configuration") {
-        let es_config_file = args.value_of("configuration").unwrap();
-        elastic::ESConfig::from_file(&es_config_file).unwrap_or_else(|err| {
-            let errmsg = err.to_string();
-            eprintln!( "[*] ERR: elasticsearch error: {}", errmsg.to_string());
+    let es_client = ESClient::from(cli.host, cli.port, cli.index.as_str());
+    let es_client = Arc::new(Mutex::new(es_client));
+
+    let mut b_history =
+        BrowserHistControl::new(cli.browser, BrowserHistFrom::Now).unwrap_or_else(|e| {
+            eprintln!("ERR: {}", e.to_string());
             std::process::exit(1);
-        })
-    } else {
-        let host = args.value_of("host").unwrap().to_string();
-        let port = args.value_of("port").unwrap().to_string();
-        let index = args.value_of("index").unwrap().to_string();
-        elastic::ESConfig::new(&host, &port, &index)
-    };
-    let es_index = elastic::ESIndex::new(es_config).unwrap_or_else(|err| {
-        eprintln!("[*] ERR: elasticsearch error: {}", err.to_string());
-        std::process::exit(1);
-    });
-    let es_index = Arc::new(Mutex::new(es_index));
-
-    let mut firefox_history = BrowserHistControl::new(
-        Browser::Firefox,
-        BrowserHistFrom::Now
-    ).unwrap_or_else(|err| {
-        eprintln!("[*] ERR: browser error: {}", err);
-        std::process::exit(1);
-    });
+        });
 
     let pid = std::process::id();
-    let mut shell_hist = HistState::new(pid).unwrap_or_else(|err| {
-        eprintln!("[*] ERR: console error: {}", err);
+    let mut c_history = ConsoleHistControl::new(pid).unwrap_or_else(|err| {
+        eprintln!("ERR: {}", err.to_string());
         std::process::exit(1);
     });
 
     let mut runner = Runner::new();
-    let t_es_index = Arc::clone(&es_index);    
+
+    let async_esclient = Arc::clone(&es_client);
     runner.start_loop(move || {
-        if let Some(records) = firefox_history.dump() {
-            t_es_index.lock().unwrap().bulk_import(records).unwrap();
+        if let Some(records) = b_history.dump() {
+            let _ = async_esclient.lock().unwrap().bulk_import(records);
         }
 
-        if let Some(records) = shell_hist.dump() {
-            t_es_index.lock().unwrap().bulk_import(records).unwrap();
-        }
         thread::sleep(time::Duration::from_millis(500));
     });
 
+    let async_esclient = Arc::clone(&es_client);
+    runner.start_loop(move || {
+        if let Some(records) = c_history.dump() {
+            let _ = async_esclient.lock().unwrap().bulk_import(records);
+        }
 
-    let mut shell = start_console().unwrap_or_else(|err| {
-        eprintln!("[*] ERR: failed to start console: {}", err);
+        thread::sleep(time::Duration::from_millis(500));
+    });
+
+    let mut child = start_console().unwrap_or_else(|err| {
+        eprintln!("ERR: {}", err.to_string());
         std::process::exit(1);
     });
-    shell.wait().expect("[*] ERR: failed to wait console");
-    println!("[*] exit...");
+
+    child.wait().expect("ERR: failed to wait console");
+    println!("exit...");
 }

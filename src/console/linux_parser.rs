@@ -44,7 +44,7 @@ lazy_static! {
             .unwrap();
 }
 
-fn parse_line(n: usize, line: &str) -> Result<HistEntry> {
+fn parse_line(n: usize, line: &str) -> Result<ConsoleHistEntry> {
     let captures: regex::Captures;
     match RE.captures(line) {
         Some(c) => captures = c,
@@ -81,7 +81,7 @@ fn parse_line(n: usize, line: &str) -> Result<HistEntry> {
         }
     };
 
-    Ok(HistEntry {
+    Ok(ConsoleHistEntry {
         user,
         status,
         timestamp,
@@ -90,8 +90,8 @@ fn parse_line(n: usize, line: &str) -> Result<HistEntry> {
     })
 }
 
-pub fn parse_histfile_contents(contents: &str) -> Result<Vec<HistEntry>> {
-    let mut records: Vec<HistEntry> = Vec::new();
+pub fn parse_histfile_contents(contents: &str) -> Result<Vec<ConsoleHistEntry>> {
+    let mut records: Vec<ConsoleHistEntry> = Vec::new();
     for (pos, line) in contents.lines().enumerate() {
         let record = parse_line(pos, line)?;
         records.push(record);

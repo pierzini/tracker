@@ -9,6 +9,7 @@ pub mod console;
 pub mod elastic;
 pub mod utils;
 pub mod log;
+pub mod cli;
 
 pub trait JsonDumper {
     fn dump(&mut self) -> Option<Vec<serde_json::Value>>;
@@ -47,11 +48,11 @@ impl JsonDumper for browser::BrowserHistControl {
                         &format!("dumped browser history: {}\t{}",
                             entry.timestamp, entry.url)
                     );
-                    
+
                     json_records.push(json_value);
 
                 }
-                
+
                 Some(json_records)
             }
             Err(_) => {
@@ -62,7 +63,7 @@ impl JsonDumper for browser::BrowserHistControl {
     }
 }
 
-impl JsonDumper for console::HistState {
+impl JsonDumper for console::ConsoleHistControl {
 
     fn dump(&mut self) -> Option<Vec<serde_json::Value>> {
         return match self.update() {
