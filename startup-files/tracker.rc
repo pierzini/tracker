@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ -z ${TRACKER_ID+x} ]]; then
+  echo "problem with environment: TRACKER_ID is not set"
+  exit
+fi
+
 export PS1="$PS1 [trckr] "
 export HISTTIMEFORMAT="%s "
 
@@ -12,7 +17,7 @@ export TRACKER_OUTPUT="$TRACKER_BASE/outfile"
 if [[ ! -d "$TRACKER_HISTLOGS" ]]; then
     mkdir -p "$TRACKER_HISTLOGS"
 fi
-export TRACKER_HISTLOG="$TRACKER_HISTLOGS/hist.$PPID.log"
+export TRACKER_HISTLOG="$TRACKER_HISTLOGS/hist.${TRACKER_ID}.log"
 
 if [[ ! -d "$TRACKER_OUTPUTS" ]]; then
     mkdir -p "$TRACKER_OUTPUTS"

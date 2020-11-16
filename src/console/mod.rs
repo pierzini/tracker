@@ -3,7 +3,7 @@ use crate::utils::*;
 use std::fmt;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::process::{Child, Command};
+use std::process::Command;
 
 #[cfg(not(target_os = "windows"))]
 #[path = "linux_parser.rs"]
@@ -29,7 +29,6 @@ const SHELL: &str = "/bin/bash";
 #[cfg(target_os = "windows")]
 const SHELL: &str = "powershell";
 
-
 #[derive(Clone, Debug)]
 pub struct ConsoleError(String);
 
@@ -54,7 +53,7 @@ pub struct ConsoleHistEntry {
 
 #[derive(Clone, Debug)]
 pub struct ConsoleHistControl {
-    id: u32,                        /* history control id */
+    id: Option<u32>,                /* history control id, None if isn't initialized */
     history: Vec<ConsoleHistEntry>, /* history themself */
     histfile: PathBuf,              /* where the history is stored */
     offset: u64,                    /* location within this history */
@@ -62,10 +61,27 @@ pub struct ConsoleHistControl {
 }
 
 impl ConsoleHistControl {
-    pub fn new(id: u32) -> Result<ConsoleHistControl, ConsoleError> {
-        let histfile = format!("{}/hist.{}.log", TRACKER_LOGS_DIR, id.to_string());
+    pub fn new() -> ConsoleHistControl {
+        ConsoleHistControl {
+            id: None,
+            history: Vec::new(),
+            histfile: PathBuf::new(),
+            offset: 0,
+            length: 0,
+        }
+    }
+
+    pub fn init(&mut self, id: u32) -> Result<(), ConsoleError> {
+        self.reset();
+
+        let histfile = if cfg!(not(target_os = "windows")) {
+            format!("{}/hist.{}.log", TRACKER_LOGS_DIR, id)
+        } else {
+            format!("{}/history.log", TRACKER_LOGS_DIR)
+        };
+
         let histfile = path_expand(&histfile).map_err(|err| {
-            return ConsoleError(format!("histfile not founded: {}", err.to_string()));
+            return ConsoleError(format!("histfile error: {}", err.to_string()));
         })?;
 
         let length: u64;
@@ -80,16 +96,21 @@ impl ConsoleHistControl {
             }
         };
 
-        Ok(ConsoleHistControl {
-            id,
-            history: Vec::new(),
-            histfile,
-            offset: 0,
-            length,
-        })
+        self.id = Some(id);
+        self.histfile = histfile;
+        self.offset = 0;
+        self.length = length;
+
+        Ok(())
     }
 
-    pub fn update(&mut self) -> Result<usize, Box<dyn std::error::Error>> {
+    pub fn update(&mut self) -> Result<usize, ConsoleError> {
+        if self.id.is_none() {
+            return Err(ConsoleError(
+                "history control not ready: call .init() before.".to_owned(),
+            ));
+        }
+
         self.length = std::fs::metadata(&self.histfile)
             .map_err(|err| ConsoleError(format!("histfile error: {}", err.to_string())))?
             .len();
@@ -118,6 +139,7 @@ impl ConsoleHistControl {
 
     pub fn reset(&mut self) {
         self.clear();
+        self.id = None;
         self.offset = 0;
     }
 
@@ -127,9 +149,21 @@ impl ConsoleHistControl {
 }
 
 /**
- * Start a shell (bash/powershell) with commands history readable by `ConsoleHistControl`.
+ * Start a shell (bash/powershell) with commands history readable by `ctrl`.
  */
-pub fn start_console() -> Result<Child, ConsoleError> {
+pub fn attach_console(
+    id: u32,
+    ctrl: std::sync::Arc<std::sync::Mutex<ConsoleHistControl>>,
+) -> Result<(), ConsoleError> {
+    /* init history control */
+    ctrl.lock().unwrap().init(id).map_err(|err| {
+        ConsoleError(format!(
+            "failed to init history control: {}",
+            err.to_string()
+        ))
+    })?;
+
+    /* start new shell */
     let init_file = path_expand(TRACKER_INIT).map_err(|err| {
         ConsoleError(format!(
             "problem with console init file: {}",
@@ -150,22 +184,25 @@ pub fn start_console() -> Result<Child, ConsoleError> {
         init_file.display()
     );
 
-    let child = if cfg!(target_os = "windows") {
-        Command::new(SHELL)
-            .args(&[
-                "-noexit",
-                "-command",
-                &format!(". {}", init_file.as_path().to_str().unwrap()),
-            ])
-            .spawn()
+    let args = if cfg!(target_os = "windows") {
+        vec![
+            "-noexit".to_owned(),
+            "-command".to_owned(),
+            format!(". {}", init_file.as_path().to_str().unwrap()),
+        ]
     } else {
-        Command::new(SHELL)
-            .args(&["--rcfile", init_file.as_path().to_str().unwrap()])
-            .spawn()
+        vec![
+            "--rcfile".to_owned(),
+            init_file.as_path().to_str().unwrap().to_owned(),
+        ]
     };
 
-    let child = child
-        .map_err(|err| ConsoleError(format!("failed to start {}: {}", SHELL, err.to_string())))?;
-
-    Ok(child)
+    Command::new(SHELL)
+        .args(&args)
+        .env("TRACKER_ID", id.to_string())
+        .spawn()
+        .map_err(|err| ConsoleError(format!("failed to run {}: {}", SHELL, err.to_string())))?
+        .wait()
+        .map_err(|err| ConsoleError(format!("failed to wait {}: {}", SHELL, err.to_string())))?;
+    Ok(())
 }

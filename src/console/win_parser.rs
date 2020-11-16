@@ -42,7 +42,7 @@ pub fn parse_record(s_record: &str) -> HistEntry {
     }
 }
 
-pub fn parse_histfile(contents: &str) -> Vec<HistEntry> {
+pub fn parse_histfile_contents(contents: &str) -> Vec<HistEntry> {
     let mut records = vec![];
 
     if contents == "" {

@@ -24,13 +24,10 @@ fn main() {
         });
 
     let pid = std::process::id();
-    let mut c_history = ConsoleHistControl::new(pid).unwrap_or_else(|err| {
-        eprintln!("ERR: {}", err.to_string());
-        std::process::exit(1);
-    });
+    let c_history = ConsoleHistControl::new();
+    let c_history = Arc::new(Mutex::new(c_history));
 
     let mut runner = Runner::new();
-
     let async_esclient = Arc::clone(&es_client);
     runner.start_loop(move || {
         if let Some(records) = b_history.dump() {
@@ -41,19 +38,18 @@ fn main() {
     });
 
     let async_esclient = Arc::clone(&es_client);
+    let async_chistory = Arc::clone(&c_history);
     runner.start_loop(move || {
-        if let Some(records) = c_history.dump() {
+        if let Some(records) = async_chistory.lock().unwrap().dump() {
             let _ = async_esclient.lock().unwrap().bulk_import(records);
         }
 
         thread::sleep(time::Duration::from_millis(500));
     });
 
-    let mut child = start_console().unwrap_or_else(|err| {
+    attach_console(pid, Arc::clone(&c_history)).unwrap_or_else(|err| {
         eprintln!("ERR: {}", err.to_string());
         std::process::exit(1);
     });
-
-    child.wait().expect("ERR: failed to wait console");
     println!("exit...");
 }
