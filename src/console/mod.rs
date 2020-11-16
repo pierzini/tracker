@@ -18,7 +18,7 @@ const TRACKER_LOGS_DIR: &str = "~/.tracker/histlogs";
 const TRACKER_LOGS_DIR: &str = "~\\AppData\\Local\\tracker\\histlogs";
 
 #[cfg(not(target_os = "windows"))]
-const TRACKER_INIT: &str = "~/.tracker/startup-files/tracker.rc";
+const TRACKER_INIT: &str = "~/.tracker/startup-files/.tracker.rc";
 #[cfg(target_os = "windows")]
 const TRACKER_INIT: &str = "~\\AppData\\Local\\tracker\\startup-files\\tracker.ps1";
 

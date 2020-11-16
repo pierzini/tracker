@@ -42,6 +42,16 @@ impl std::fmt::Display for ParsingError {
 
 impl std::error::Error for ParsingError {}
 
+
+fn parse_host(line: &str) -> Result<String, ParsingError> {
+    let re = Regex::new(r#"^host:\s+([.0-9]+)$"#).unwrap();
+    if re.is_match(line) {
+
+    }
+
+    Ok(String::new())
+}
+
 pub fn parse_cfg_file<P: AsRef<Path>>(
     file: P,
 ) -> Result<ESConfig, Box<dyn std::error::Error>> {

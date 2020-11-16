@@ -9,14 +9,6 @@ use regex::Regex;
 
 mod parser;
 
-#[derive(Debug, Clone)]
-struct ParsingError(String);
-impl std::fmt::Display for ParsingError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-impl std::error::Error for ParsingError {}
 
 pub struct ESConfig {
     host: String,
@@ -31,7 +23,6 @@ pub struct ESIndex {
 
 impl ESConfig {
     pub fn new(host: &str, port: &str, index: &str) -> ESConfig {
-        
         /* todo: only if verbose */
         println!(
             "[*] ElasticSearch configuration: host {}, port {}, index {}",
