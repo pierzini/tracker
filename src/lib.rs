@@ -5,18 +5,17 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
 pub mod browser;
+pub mod cli;
 pub mod console;
 pub mod elastic;
-pub mod utils;
 pub mod log;
-pub mod cli;
+pub mod utils;
 
 pub trait JsonDumper {
     fn dump(&mut self) -> Option<Vec<serde_json::Value>>;
 }
 
 impl JsonDumper for browser::BrowserHistControl {
-
     fn dump(&mut self) -> Option<Vec<serde_json::Value>> {
         return match self.update() {
             Ok(n) => {
@@ -28,47 +27,46 @@ impl JsonDumper for browser::BrowserHistControl {
                 let history = self.history().clone();
                 self.clear();
 
-                for entry in history {
+                for entry in &history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert(
-                        "@timestamp".to_string(),
-                        serde_json::json!(entry.timestamp)
-                    );
-                    json_value.insert(
-                        "url.full".to_string(),
-                        serde_json::json!(entry.url)
-                    );
+                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
+                    json_value.insert("url.full".to_string(), serde_json::json!(entry.url));
                     json_value.insert(
                         "url.visit_count".to_string(),
-                        serde_json::json!(entry.visit_count)
+                        serde_json::json!(entry.visit_count),
                     );
                     let json_value = serde_json::to_value(json_value).unwrap();
 
-                    log::log_info(
-                        &format!("dumped browser history: {}\t{}",
-                            entry.timestamp, entry.url)
-                    );
+                    log::log_info(&format!(
+                        "dumped browser history: {}\t{}",
+                        entry.timestamp, entry.url
+                    ));
 
                     json_records.push(json_value);
 
+                    log::log_info(&format!(
+                        "dumped browser record: {} {}",
+                        entry.url, entry.timestamp
+                    ));
                 }
 
                 Some(json_records)
             }
-            Err(_) => {
-                // todo: log error (problem)
+            Err(err) => {
+                log::log_error(&format!(
+                    "failed to dump browser history: {}",
+                    err.to_string()
+                ));
                 None
-            },
+            }
         };
     }
 }
 
 impl JsonDumper for console::ConsoleHistControl {
-
     fn dump(&mut self) -> Option<Vec<serde_json::Value>> {
         return match self.update() {
             Ok(n) => {
-
                 if n == 0 {
                     return None;
                 }
@@ -80,14 +78,8 @@ impl JsonDumper for console::ConsoleHistControl {
 
                 for entry in &history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert(
-                        "@timestamp".to_string(),
-                        serde_json::json!(entry.timestamp)
-                    );
-                    json_value.insert(
-                        "user.name".to_string(),
-                        serde_json::json!(entry.user)
-                    );
+                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
+                    json_value.insert("user.name".to_string(), serde_json::json!(entry.user));
                     json_value.insert(
                         "process.command_line".to_string(),
                         serde_json::json!(entry.cmd),
@@ -103,19 +95,22 @@ impl JsonDumper for console::ConsoleHistControl {
 
                     let json_value = serde_json::to_value(json_value).unwrap();
 
-                    log::log_info(
-                        &format!("dumped console history: {}\t{}",
-                            entry.timestamp, entry.cmd)
-                    );
+                    log::log_info(&format!(
+                        "dumped console history: {}\t{}",
+                        entry.timestamp, entry.cmd
+                    ));
 
                     json_records.push(json_value);
                 }
                 Some(json_records)
             }
-            Err(_) => {
-                // todo: log error (problem)
+            Err(err) => {
+                log::log_error(&format!(
+                    "failed to dump console history: {}",
+                    err.to_string()
+                ));
                 None
-            },
+            }
         };
     }
 }

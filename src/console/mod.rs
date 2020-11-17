@@ -3,7 +3,8 @@ use crate::utils::*;
 use std::fmt;
 use std::io::prelude::*;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, ExitStatus};
+use std::thread;
 
 #[cfg(not(target_os = "windows"))]
 #[path = "linux_parser.rs"]
@@ -148,61 +149,56 @@ impl ConsoleHistControl {
     }
 }
 
+
 /**
  * Start a shell (bash/powershell) with commands history readable by `ctrl`.
  */
-pub fn attach_console(
+pub fn start_console(
     id: u32,
-    ctrl: std::sync::Arc<std::sync::Mutex<ConsoleHistControl>>,
-) -> Result<(), ConsoleError> {
-    /* init history control */
-    ctrl.lock().unwrap().init(id).map_err(|err| {
+    ctrl: &mut ConsoleHistControl,
+) -> Result<thread::JoinHandle<ExitStatus>, ConsoleError> {
+    ctrl.init(id).map_err(|err| {
         ConsoleError(format!(
             "failed to init history control: {}",
             err.to_string()
         ))
     })?;
 
-    /* start new shell */
-    let init_file = path_expand(TRACKER_INIT).map_err(|err| {
-        ConsoleError(format!(
-            "problem with console init file: {}",
-            err.to_string()
-        ))
+    let init = path_expand(TRACKER_INIT).map_err(|err| {
+        ConsoleError(format!("problem with shell init file: {}", err.to_string()))
     })?;
 
-    if !init_file.as_path().exists() {
+    if !init.as_path().exists() {
         return Err(ConsoleError(format!(
             "console init file {} not founded",
-            init_file.display()
+            init.display()
         )));
     }
-
-    println!(
-        "[*] starting {} with init file: {}",
-        SHELL,
-        init_file.display()
-    );
 
     let args = if cfg!(target_os = "windows") {
         vec![
             "-noexit".to_owned(),
             "-command".to_owned(),
-            format!(". {}", init_file.as_path().to_str().unwrap()),
+            format!(". {}", init.as_path().to_str().unwrap()),
         ]
     } else {
         vec![
             "--rcfile".to_owned(),
-            init_file.as_path().to_str().unwrap().to_owned(),
+            init.as_path().to_str().unwrap().to_owned(),
         ]
     };
 
-    Command::new(SHELL)
-        .args(&args)
-        .env("TRACKER_ID", id.to_string())
-        .spawn()
-        .map_err(|err| ConsoleError(format!("failed to run {}: {}", SHELL, err.to_string())))?
-        .wait()
-        .map_err(|err| ConsoleError(format!("failed to wait {}: {}", SHELL, err.to_string())))?;
-    Ok(())
+    println!("started {} with init file {}", SHELL, init.display());
+
+    let thread = thread::spawn(move || {
+        Command::new(SHELL)
+            .args(&args)
+            .env("TRACKER_ID", id.to_string())
+            .spawn()
+            .expect("failed to run console")
+            .wait()
+            .expect("failed to wait console")
+    });
+
+    Ok(thread)
 }

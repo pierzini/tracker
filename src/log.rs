@@ -17,8 +17,8 @@ fn log_msg(level: LogLevel, msg: &str) {
     let now = NaiveDateTime::from_timestamp(now, 0);
 
     let msg = match level {
-        LogLevel::Info => format!("{}:INFO: {}", now, msg),
-        LogLevel::Error => format!("{}:ERROR: {}", now, msg),
+        LogLevel::Info => format!("[{}]:INFO:{}", now, msg),
+        LogLevel::Error => format!("[{}]:ERROR:{}", now, msg),
     };
     if let Ok(mut file) = fs::OpenOptions::new()
         .write(true)

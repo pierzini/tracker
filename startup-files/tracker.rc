@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 if [[ -z ${TRACKER_ID+x} ]]; then
-  echo "problem with environment: TRACKER_ID is not set"
-  exit
+    echo "problem with environment: TRACKER_ID is not set"
+    exit
 fi
 
 export PS1="$PS1 [trckr] "
@@ -10,7 +10,7 @@ export HISTTIMEFORMAT="%s "
 
 export TRACKER_BASE="$HOME/.tracker"
 export TRACKER_HISTLOGS="$TRACKER_BASE/histlogs"
-export TRACKER_OUTPUTS="$TRACKER_BASE/outputs"
+export TRACKER_OUTPUTS="$TRACKER_BASE/outputs/${TRACKER_ID}"
 export TRACKER_HISTFILE="$TRACKER_BASE/histfile"
 export TRACKER_OUTPUT="$TRACKER_BASE/outfile"
 
@@ -18,6 +18,7 @@ if [[ ! -d "$TRACKER_HISTLOGS" ]]; then
     mkdir -p "$TRACKER_HISTLOGS"
 fi
 export TRACKER_HISTLOG="$TRACKER_HISTLOGS/hist.${TRACKER_ID}.log"
+touch "$TRACKER_HISTLOG"
 
 if [[ ! -d "$TRACKER_OUTPUTS" ]]; then
     mkdir -p "$TRACKER_OUTPUTS"
@@ -52,7 +53,7 @@ prmpt_cmd()
     local output="$(cat "$TRACKER_OUTPUT")"
     echo -n "" > "$TRACKER_OUTPUT"
     if [[ "$(uname)" = "Darwin" ]]; then
-      local outfile="$(mktemp "$TRACKER_OUTPUTS/out_XXX").txt"
+      local outfile="$(mktemp "$TRACKER_OUTPUTS/out_XXX")"
     else
       local outfile="$(mktemp -u -p "$TRACKER_OUTPUTS" out_XXX.txt)"
     fi
