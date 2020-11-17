@@ -21,6 +21,7 @@ FROM moz_places
 WHERE last_visit_date IS NOT NULL AND timestamp > ?
 ORDER BY timestamp;";
 
+#[cfg(target_os = "macos")]
 static FIREFOX_ESR_DB: &str =
     "~/Library/Application Support/Firefox/Profiles/*default-esr/places.sqlite";
 #[cfg(target_os = "linux")]
