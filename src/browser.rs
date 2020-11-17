@@ -21,6 +21,14 @@ FROM moz_places
 WHERE last_visit_date IS NOT NULL AND timestamp > ?
 ORDER BY timestamp;";
 
+static FIREFOX_ESR_DB: &str =
+    "~/Library/Application Support/Firefox/Profiles/*default-esr/places.sqlite";
+#[cfg(target_os = "linux")]
+static FIREFOX_ESR_DB: &str = "~/.mozilla/firefox/*default-esr/places.sqlite";
+#[cfg(target_os = "windows")]
+static FIREFOX_ESR_DB: &str =
+    "~\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\*default-esr\\places.sqlite";
+
 #[cfg(target_os = "macos")]
 static CHROME_DB: &str = "~/Library/Application Support/Google/Chrome/Default/History";
 #[cfg(target_os = "linux")]
@@ -84,15 +92,13 @@ impl BrowserHistControl {
     ) -> Result<BrowserHistControl, BrowserError> {
         let (database, raw_query) = match browser {
             Browser::Firefox => {
-                let database = FIREFOX_DB;
-                let query = FIREFOX_QUERY;
-                (database, query)
+                (FIREFOX_DB, FIREFOX_QUERY)
             }
-            Browser::FirefoxEsr => unimplemented!(),
+            Browser::FirefoxEsr => {
+                (FIREFOX_ESR_DB, FIREFOX_QUERY)
+            }
             Browser::Chrome => {
-                let database = CHROME_DB;
-                let query = CHROME_QUERY;
-                (database, query)
+                (CHROME_DB, CHROME_QUERY)
             }
         };
 

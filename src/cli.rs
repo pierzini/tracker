@@ -262,11 +262,13 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     }
 
     if host.is_none() {
-        return Err(CliError(format!("{} host not present", errmsg)))
+        // return Err(CliError(format!("{} host not present", errmsg)))
+        host = Some("127.0.0.1".parse::<IpAddr>().unwrap());
     }
 
     if port.is_none() {
-        return Err(CliError(format!("{} port not present", errmsg)))
+        // return Err(CliError(format!("{} port not present", errmsg)))
+        port = Some(9200);
     }
 
     if index.is_none() {
@@ -274,7 +276,8 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     }
 
     if browser.is_none() {
-        return Err(CliError(format!("{} browser not present", errmsg)))
+        browser = Some(Browser::Firefox);
+        // return Err(CliError(format!("{} browser not present", errmsg)))
     }
 
     Ok(Cli {
