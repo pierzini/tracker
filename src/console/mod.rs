@@ -195,7 +195,7 @@ pub fn start_console(
             .args(&args)
             .env("TRACKER_ID", id.to_string())
             .spawn()
-            .expect("failed to run console")
+            .expect(&format!("failed to run {}", SHELL))
             .wait()
             .expect("failed to wait console")
     });

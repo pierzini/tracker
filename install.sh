@@ -9,6 +9,6 @@ fi
 
 cp ./startup-files/tracker.rc "$TRACKER_INIT"
 
-#cargo install --path .
+cargo install --path .
 
 echo "Installed. Please run 'tracker'."
