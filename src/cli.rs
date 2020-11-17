@@ -59,7 +59,7 @@ impl Cli {
                     .long("browser")
                     .short("b")
                     .number_of_values(1)
-                    .default_value("firefox")
+                    .default_value("firefox-esr")
                     .validator(|arg| {
                         if !arg.eq("firefox") && !arg.eq("firefox-esr") && !arg.eq("chrome") {
                             return Err(format!(
@@ -147,7 +147,7 @@ fn check_browser(browser: &str) -> Option<Browser> {
     return match browser {
         "chrome" => Some(Browser::Chrome),
         "firefox" => Some(Browser::Firefox),
-        "firefox-esr" => unimplemented!(),
+        "firefox-esr" => Some(Browser::FirefoxEsr),
         _ => None,
     }
 }
@@ -276,7 +276,7 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     }
 
     if browser.is_none() {
-        browser = Some(Browser::Firefox);
+        browser = Some(Browser::FirefoxEsr);
         // return Err(CliError(format!("{} browser not present", errmsg)))
     }
 

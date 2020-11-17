@@ -32,6 +32,10 @@ impl JsonDumper for browser::BrowserHistControl {
                     json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
                     json_value.insert("url.full".to_string(), serde_json::json!(entry.url));
                     json_value.insert(
+                        "user_agent.name".to_string(),
+                        serde_json::json!(self.browser()),
+                    );
+                    json_value.insert(
                         "url.visit_count".to_string(),
                         serde_json::json!(entry.visit_count),
                     );
