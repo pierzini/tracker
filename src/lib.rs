@@ -145,12 +145,12 @@ impl Runner {
     where
         F: FnMut() + Send + 'static,
     {
-        let id = self.workers.len();
+        // let id = self.workers.len();
         let rx = Arc::clone(&self.receiver);
         let thread = thread::spawn(move || loop {
             job();
             if let Ok(Message::Terminate) = rx.lock().unwrap().try_recv() {
-                println!("[*] terminating thread ID {}", id);
+                // println!("[*] terminating thread ID {}", id);
                 break;
             }
         });

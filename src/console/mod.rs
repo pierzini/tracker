@@ -188,7 +188,7 @@ pub fn start_console(
         ]
     };
 
-    println!("started {} with init file {}", SHELL, init.display());
+    // println!("started {} with init file {}", SHELL, init.display());
 
     let thread = thread::spawn(move || {
         Command::new(SHELL)

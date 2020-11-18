@@ -9,7 +9,7 @@ use regex;
 use crate::browser::Browser;
 
 #[allow(dead_code)]
-const TRACKER_CONF: &str = "/etc/tracker.conf";  // todo: use this as default cfg file
+const TRACKER_CONF: &str = "/etc/tracker.conf"; // todo: use this as default cfg file
 
 #[derive(Clone, Debug)]
 pub struct CliError(String);
@@ -22,13 +22,12 @@ impl fmt::Display for CliError {
 
 impl std::error::Error for CliError {}
 
-
 #[derive(Clone, Debug)]
 pub struct Cli {
     pub host: IpAddr,
     pub port: u64,
     pub index: String,
-    pub browser: Browser,
+    pub browser: Option<Browser>,
 }
 
 impl Cli {
@@ -59,15 +58,14 @@ impl Cli {
                     .long("browser")
                     .short("b")
                     .number_of_values(1)
-                    .default_value("firefox-esr")
                     .validator(|arg| {
                         if !arg.eq("firefox") && !arg.eq("firefox-esr") && !arg.eq("chrome") {
                             return Err(format!(
-                                "browser {} not valid. Valid browser are firefox, chrome or firefox-esr",
+                                "browser {} not valid. Plase entry firefox, chrome or firefox-esr",
                                 arg
                             ));
                         } else {
-                            return Ok(())
+                            return Ok(());
                         }
                     }),
             )
@@ -110,11 +108,13 @@ impl Cli {
         }
 
         // get browser
-        let browser: Browser;
-        let s_browser = args.value_of("browser").unwrap();
-        match check_browser(s_browser) {
-            Some(b) => browser = b,
-            None => return Err(CliError("browser not valid.".to_string())),
+        let mut browser: Option<Browser> = None;
+        if args.is_present("browser") {
+            let s_browser = args.value_of("browser").unwrap();
+            match check_browser(s_browser) {
+                Some(b) => browser = Some(b),
+                None => return Err(CliError("browser not valid.".to_string())),
+            }
         }
 
         Ok(Cli {
@@ -132,15 +132,15 @@ fn check_host(host: &str) -> Option<IpAddr> {
     }
     return match host.parse::<IpAddr>() {
         Ok(addr) => Some(addr),
-        Err(_) => None
-    }
+        Err(_) => None,
+    };
 }
 
 fn check_port(port: &str) -> Option<u64> {
     return match port.parse::<u64>() {
         Ok(p) => Some(p),
-        Err(_) => None
-    }
+        Err(_) => None,
+    };
 }
 
 fn check_browser(browser: &str) -> Option<Browser> {
@@ -149,7 +149,7 @@ fn check_browser(browser: &str) -> Option<Browser> {
         "firefox" => Some(Browser::Firefox),
         "firefox-esr" => Some(Browser::FirefoxEsr),
         _ => None,
-    }
+    };
 }
 
 fn load_host(line: &str) -> Option<IpAddr> {
@@ -175,7 +175,7 @@ fn load_index(line: &str) -> Option<String> {
     return match re.captures(line) {
         Some(index) => Some(index[1].to_string()),
         None => None,
-    }
+    };
 }
 
 fn load_browser(line: &str) -> Option<Browser> {
@@ -187,7 +187,6 @@ fn load_browser(line: &str) -> Option<Browser> {
     None
 }
 
-
 fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     let mut host: Option<IpAddr> = None;
     let mut port: Option<u64> = None;
@@ -195,69 +194,72 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     let mut browser: Option<Browser> = None;
     let errmsg = "failed to read cfg file:";
 
-    if ! filepath.as_ref().is_file() {
+    if !filepath.as_ref().is_file() {
         return Err(CliError(format!(
-            "path {} does not contain a file.", filepath.as_ref().display()))
-        );
+            "path {} does not contain a file.",
+            filepath.as_ref().display()
+        )));
     }
 
     let contents: String;
     match read_to_string(&filepath) {
         Ok(c) => contents = c,
-        Err(err) => return Err(CliError(format!(
-            "failed to read file {}: {}.", filepath.as_ref().display(), err.to_string()
-        )))
+        Err(err) => {
+            return Err(CliError(format!(
+                "failed to read file {}: {}.",
+                filepath.as_ref().display(),
+                err.to_string()
+            )))
+        }
     }
 
     for (pos, line) in contents.lines().enumerate() {
         if line == "" {
             continue;
-        }
-
-        else if line.starts_with("#") {
+        } else if line.starts_with("#") {
             continue;
-        }
-
-        else if line.starts_with("host:") {
+        } else if line.starts_with("host:") {
             match load_host(line) {
                 Some(h) => host = Some(h),
-                None => return Err(CliError(format!(
-                    "{} bad host at position {}: {}", errmsg, pos, line
-                ))),
+                None => {
+                    return Err(CliError(format!(
+                        "{} bad host at position {}: {}",
+                        errmsg, pos, line
+                    )))
+                }
             }
-        }
-
-        else if line.starts_with("port:") {
+        } else if line.starts_with("port:") {
             match load_port(line) {
                 Some(p) => port = Some(p),
-                None => return Err(CliError(format!(
-                    "{} bad port at position {}: {}", errmsg, pos, line
-                ))),
+                None => {
+                    return Err(CliError(format!(
+                        "{} bad port at position {}: {}",
+                        errmsg, pos, line
+                    )))
+                }
             }
-        }
-
-        else if line.starts_with("index:") {
+        } else if line.starts_with("index:") {
             match load_index(line) {
                 Some(idx) => index = Some(idx),
-                None => return Err(CliError(format!(
-                    "{} bad index at position {}: {}", errmsg, pos, line
-                ))),
+                None => {
+                    return Err(CliError(format!(
+                        "{} bad index at position {}: {}",
+                        errmsg, pos, line
+                    )))
+                }
             }
-        }
-
-        else if line.starts_with("browser:") {
+        } else if line.starts_with("browser:") {
             match load_browser(line) {
                 Some(b) => browser = Some(b),
-                None => return Err(CliError(format!(
-                    "{} bad browser at position {}: {}", errmsg, pos, line
-                ))),
+                None => {
+                    return Err(CliError(format!(
+                        "{} bad browser at position {}: {}",
+                        errmsg, pos, line
+                    )))
+                }
             }
-        }
-
-        else {
-            return Err(CliError(format!(
-                "bad line at position {}: {}", pos, line
-            )))
+        } else {
+            return Err(CliError(format!("bad line at position {}: {}", pos, line)));
         }
     }
 
@@ -272,18 +274,18 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     }
 
     if index.is_none() {
-        return Err(CliError(format!("{} index not present", errmsg)))
+        return Err(CliError(format!("{} index not present", errmsg)));
     }
 
-    if browser.is_none() {
-        browser = Some(Browser::FirefoxEsr);
-        // return Err(CliError(format!("{} browser not present", errmsg)))
-    }
+    // if browser.is_none() {
+    //     browser = Some(Browser::FirefoxEsr);
+    //     // return Err(CliError(format!("{} browser not present", errmsg)))
+    // }
 
     Ok(Cli {
         host: host.unwrap(),
         port: port.unwrap(),
         index: index.unwrap(),
-        browser: browser.unwrap(),
+        browser: browser,
     })
 }

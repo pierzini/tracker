@@ -92,15 +92,9 @@ impl BrowserHistControl {
         from: BrowserHistFrom,
     ) -> Result<BrowserHistControl, BrowserError> {
         let (database, raw_query) = match browser {
-            Browser::Firefox => {
-                (FIREFOX_DB, FIREFOX_QUERY)
-            }
-            Browser::FirefoxEsr => {
-                (FIREFOX_ESR_DB, FIREFOX_QUERY)
-            }
-            Browser::Chrome => {
-                (CHROME_DB, CHROME_QUERY)
-            }
+            Browser::Firefox => (FIREFOX_DB, FIREFOX_QUERY),
+            Browser::FirefoxEsr => (FIREFOX_ESR_DB, FIREFOX_QUERY),
+            Browser::Chrome => (CHROME_DB, CHROME_QUERY),
         };
 
         let database = path_expand_and_resolve(database).map_err(|err| {
@@ -110,9 +104,6 @@ impl BrowserHistControl {
                 browser
             ))
         })?;
-
-        // todo: only verbose
-        println!("[*] browser db founded: {}", &database.display());
 
         let raw_query = raw_query.to_string();
         let l_timestamp = 0;
