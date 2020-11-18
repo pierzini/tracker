@@ -13,7 +13,7 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -b, --browser <browser>     [default: firefox]
+    -b, --browser <browser>
     -f, --file <cfgfile>
     -h, --host <host>           [default: localhost]
     -i, --index <index>
