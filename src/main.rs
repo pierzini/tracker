@@ -36,7 +36,8 @@ fn main() {
 
     // start bash
     let pid = std::process::id();
-    println!("[*] Starting /bin/bash");
+    println!("[*] Starting /bin/bash.");
+    println!("ATTENTION: Output is redirected.");
     let console = start_console(pid, &mut c_history).unwrap_or_else(|err| {
         eprintln!("[*] ERR: {}.", err.to_string());
         std::process::exit(1);
