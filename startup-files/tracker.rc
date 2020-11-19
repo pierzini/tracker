@@ -5,7 +5,7 @@ if [[ -z ${TRACKER_ID+x} ]]; then
     exit
 fi
 
-export PS1="$PS1 [trckr] "
+# export PS1="$PS1 [trckr] "
 export HISTTIMEFORMAT="%s "
 
 export TRACKER_BASE="$HOME/.tracker"
@@ -61,10 +61,10 @@ prmpt_cmd()
 
     # append record to logfile
     {
-        echo -n -e "status=\"$status\"\t"
-        echo -n -e "user=\"$user\"\t"
-        echo -n -e "timestamp=\"$timestamp\"\t"
-        echo -n -e "cmd=\"$cmd\"\t"
+        echo -n "status=\"$status\" "
+        echo -n "user=\"$user\" "
+        echo -n "timestamp=\"$timestamp\" "
+        echo -n "cmd=\"$cmd\" "
         echo "outfile=\"$outfile\""
     } >> "$TRACKER_HISTLOG"
 

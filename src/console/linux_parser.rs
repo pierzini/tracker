@@ -40,7 +40,7 @@ type Result<T> = std::result::Result<T, ParsingError>;
 
 lazy_static! {
     static ref RE: Regex =
-        Regex::new(r#"status="(\d+)"\tuser="(.*)"\ttimestamp="(\d+)"\tcmd="(.*)"\toutfile="(.*)""#)
+        Regex::new(r#"status="(\d+)"\suser="(.*)"\stimestamp="(\d+)"\scmd="(.*)"\soutfile="(.*)""#)
             .unwrap();
 }
 
