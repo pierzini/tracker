@@ -11,6 +11,7 @@ pub mod elastic;
 pub mod log;
 pub mod utils;
 
+
 pub trait JsonDumper {
     fn dump(&mut self) -> Option<Vec<serde_json::Value>>;
 }
@@ -29,8 +30,14 @@ impl JsonDumper for browser::BrowserHistControl {
 
                 for entry in &history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
-                    json_value.insert("url.full".to_string(), serde_json::json!(entry.url));
+                    json_value.insert(
+                        "@timestamp".to_string(),
+                        serde_json::json!(entry.timestamp)
+                    );
+                    json_value.insert(
+                        "url.full".to_string(),
+                        serde_json::json!(entry.url)
+                    );
                     json_value.insert(
                         "user_agent.name".to_string(),
                         serde_json::json!(self.browser()),
@@ -82,8 +89,14 @@ impl JsonDumper for console::ConsoleHistControl {
 
                 for entry in &history {
                     let mut json_value = serde_json::Map::new();
-                    json_value.insert("@timestamp".to_string(), serde_json::json!(entry.timestamp));
-                    json_value.insert("user.name".to_string(), serde_json::json!(entry.user));
+                    json_value.insert(
+                        "@timestamp".to_string(),
+                        serde_json::json!(entry.timestamp)
+                    );
+                    json_value.insert(
+                        "process.user".to_string(),
+                        serde_json::json!(entry.user)
+                    );
                     json_value.insert(
                         "process.command_line".to_string(),
                         serde_json::json!(entry.cmd),

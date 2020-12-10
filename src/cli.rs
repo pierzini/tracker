@@ -27,12 +27,21 @@ pub struct Cli {
     pub host: IpAddr,
     pub port: u64,
     pub index: String,
+    pub interface: String,
     pub browser: Option<Browser>,
 }
 
 impl Cli {
     pub fn new() -> Result<Cli, CliError> {
         let args = clap::App::new("tracker")
+            .arg(
+                clap::Arg::with_name("index")
+                    .number_of_values(1)
+            )
+            .arg(
+                clap::Arg::with_name("interface")
+                    .number_of_values(1),
+            )
             .arg(
                 clap::Arg::with_name("host")
                     .long("host")
@@ -46,12 +55,6 @@ impl Cli {
                     .short("p")
                     .number_of_values(1)
                     .default_value("9200"),
-            )
-            .arg(
-                clap::Arg::with_name("index")
-                    .long("index")
-                    .short("i")
-                    .number_of_values(1),
             )
             .arg(
                 clap::Arg::with_name("browser")
@@ -107,6 +110,12 @@ impl Cli {
             None => return Err(CliError("plase specify an index name.".to_string())),
         }
 
+        let interface: String;
+        match args.value_of("interface") {
+            Some(inet) => interface = inet.to_owned(),
+            None => return Err(CliError("plase specify a network interface.".to_string())),
+        }
+
         // get browser
         let mut browser: Option<Browser> = None;
         if args.is_present("browser") {
@@ -121,6 +130,7 @@ impl Cli {
             host,
             port,
             index,
+            interface,
             browser,
         })
     }
@@ -187,11 +197,20 @@ fn load_browser(line: &str) -> Option<Browser> {
     None
 }
 
+fn load_interface(line: &str) -> Option<String> {
+    let re = regex::Regex::new(r#"^inte:\s+([a-z0-9])$"#).unwrap();
+    return match re.captures(line) {
+        Some(interface) => Some(interface[1].to_string()),
+        None => None,
+    }
+}
+
 fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
     let mut host: Option<IpAddr> = None;
     let mut port: Option<u64> = None;
     let mut index: Option<String> = None;
     let mut browser: Option<Browser> = None;
+    let mut interface: Option<String> = None;
     let errmsg = "failed to read cfg file:";
 
     if !filepath.as_ref().is_file() {
@@ -258,6 +277,16 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
                     )))
                 }
             }
+        } else if line.starts_with("interface:") {
+            match load_interface(line) {
+                Some(i) => interface = Some(i),
+                None => {
+                    return Err(CliError(format!(
+                        "{} bad interface at position {}: {}",
+                        errmsg, pos, line
+                    )))
+                }
+            }
         } else {
             return Err(CliError(format!("bad line at position {}: {}", pos, line)));
         }
@@ -277,6 +306,10 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
         return Err(CliError(format!("{} index not present", errmsg)));
     }
 
+    if interface.is_none() {
+        return Err(CliError(format!("{} interface not present", errmsg)));   
+    }
+
     // if browser.is_none() {
     //     browser = Some(Browser::FirefoxEsr);
     //     // return Err(CliError(format!("{} browser not present", errmsg)))
@@ -286,6 +319,7 @@ fn load_cfg_file<P: AsRef<Path>>(filepath: P) -> Result<Cli, CliError> {
         host: host.unwrap(),
         port: port.unwrap(),
         index: index.unwrap(),
+        interface: interface.unwrap(),
         browser: browser,
     })
 }

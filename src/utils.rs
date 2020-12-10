@@ -1,3 +1,6 @@
+use std::net::IpAddr;
+use std::process::Command;
+use regex::Regex;
 use std::fs::{copy, File};
 use std::io;
 use std::io::prelude::*;
@@ -6,6 +9,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use dirs;
 use glob;
+
+
+pub fn whoami() -> String {
+    // TODO: add windows funcionality
+    let whoami = Command::new("whoami").output().expect("failed to get username").stdout;
+    let whoami = String::from_utf8(whoami).unwrap();
+    let whoami = whoami.trim_end_matches("\n");
+    whoami.to_string()
+}
+
+pub fn ip_get_addr(interface: &str) -> IpAddr {
+    // TODO: add Windows funcionality
+    let re = Regex::new(r#"inet\s([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})"#).unwrap();
+    let ipaddr = if cfg!(target_os = "linux") {
+        Command::new("ip").args(&["a", "s", interface]).output()
+    } else if cfg!(target_os = "macos") {
+        Command::new("ifconfig").arg(interface).output()
+    } else {
+        unimplemented!()
+    };
+    let ipaddr = ipaddr.expect("failed to get ip address").stdout;
+    let ipaddr = String::from_utf8(ipaddr).unwrap();
+    let ipaddr = re.captures(&ipaddr).expect("failed to retrieve IP addr")[1].to_string();
+    let ipaddr = ipaddr.parse::<IpAddr>().unwrap();
+    ipaddr
+}
 
 /**
  * Get current timestamp as seconds.
